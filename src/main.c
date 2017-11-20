@@ -5,16 +5,15 @@
 #include "cap1106.h"
 
 /* CAP1106 PIN definition */
-#define CAP_CLK_PIN 32
-#define CAP_SDA_PIN 26
-#define CAP_ALERT_PIN 35
+#define CAP_CLK_PIN 18
+#define CAP_SDA_PIN 5
+#define CAP_ALERT_PIN 17
 /* LEDs definition */
-#define LED_E1_PIN 5
-#define LED_E2_PIN 19
-#define LED_E3_PIN 18
-#define LED_E4_PIN 17
+#define LED_E1_PIN 25
+#define LED_E2_PIN 33
+#define LED_E3_PIN 32
 /*  */
-#define CAP_ELECTRODE_NO 4
+#define CAP_ELECTRODE_NO 3
 
 static IRAM void s_touch_alert_hdl(int pin, void *arg);
 static void s_cap1106_init(void);
@@ -34,14 +33,14 @@ enum mgos_app_init_result mgos_app_init(void) {
 
 	s_cap1106_init();
 
-	s_touch_tmr = mgos_set_timer(1000, MGOS_TIMER_REPEAT, s_touch_read_tmr, NULL);
+	// s_touch_tmr = mgos_set_timer(1000, MGOS_TIMER_REPEAT, s_touch_read_tmr, NULL);
 
 	return MGOS_APP_INIT_SUCCESS;
 }
 
 static void s_touch_alert_hdl(int pin, void *arg)
 {
-
+	s_touch_tmr = mgos_set_timer(10, 0, s_touch_read_tmr, NULL);
 }
 
 static void s_touch_read_tmr(void *args)
@@ -118,7 +117,7 @@ static void s_cap1106_init(void)
 	}
 	LOG(LL_DEBUG,
 		("SENSOR_ENABLE = 0x%x", reg));
-	reg &= 0x0F;
+	reg &= 0x07;
 	// enable CS1-4
 	res = mgos_i2c_write_reg_b(i2c_ptr, CAP1106_SLAVE_ADDR, CAP1106_REG_SENSOR_ENABLE, reg);
 	if (!res) {
@@ -137,7 +136,7 @@ static void s_cap1106_init(void)
 	}
 	LOG(LL_DEBUG,
 		("STANDBY_CHANNEL = 0x%x", reg));
-	reg &= 0x0F;
+	reg &= 0x07;
 	// enable CS1-4 in standby mode
 	res = mgos_i2c_write_reg_b(i2c_ptr, CAP1106_SLAVE_ADDR, CAP1106_REG_STANDBY_CHANNEL, reg);
 	if (!res) {
@@ -211,6 +210,16 @@ static void s_cap1106_init(void)
 	LOG(LL_DEBUG,
 		("SENSOR_CONFIG2 = 0x%x", reg));
 
+	// Init ALERT GPIO pin
+	res = mgos_gpio_set_mode(CAP_ALERT_PIN, MGOS_GPIO_MODE_INPUT);
+	res &= mgos_gpio_set_int_handler(CAP_ALERT_PIN, MGOS_GPIO_INT_EDGE_NEG, s_touch_alert_hdl, NULL);
+	res &= mgos_gpio_enable_int(CAP_ALERT_PIN);
+	if (!res) {
+		LOG(LL_ERROR,
+			("Setup ALERT PIN %d error", CAP_ALERT_PIN));
+		return;
+	}
+
 	LOG(LL_INFO, ("CAP1106 initialize DONE"));
 }
 
@@ -222,7 +231,6 @@ static void s_led_init(void)
 	ret = mgos_gpio_set_mode(LED_E1_PIN, MGOS_GPIO_MODE_OUTPUT);
 	ret &= mgos_gpio_set_mode(LED_E2_PIN, MGOS_GPIO_MODE_OUTPUT);
 	ret &= mgos_gpio_set_mode(LED_E3_PIN, MGOS_GPIO_MODE_OUTPUT);
-	ret &= mgos_gpio_set_mode(LED_E4_PIN, MGOS_GPIO_MODE_OUTPUT);
 
 	if (!ret) {
 		LOG(LL_ERROR, ("GPIO set mode failed"));
@@ -290,8 +298,8 @@ static bool s_cap1106_reset_state(void)
 
 static void s_led_set(int val)
 {
-	mgos_gpio_write(LED_E1_PIN, val & 0x01);
-	mgos_gpio_write(LED_E2_PIN, val & 0x02);
-	mgos_gpio_write(LED_E3_PIN, val & 0x04);
-	mgos_gpio_write(LED_E4_PIN, val & 0x08);
+	int v = ~val;
+	mgos_gpio_write(LED_E1_PIN, v & 0x01);
+	mgos_gpio_write(LED_E2_PIN, v & 0x02);
+	mgos_gpio_write(LED_E3_PIN, v & 0x04);
 }
