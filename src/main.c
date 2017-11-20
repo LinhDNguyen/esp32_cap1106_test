@@ -5,9 +5,9 @@
 #include "cap1106.h"
 
 /* CAP1106 PIN definition */
-#define CAP_CLK_PIN 18
-#define CAP_SDA_PIN 5
-#define CAP_ALERT_PIN 17
+#define CAP_CLK_PIN 4
+#define CAP_SDA_PIN 0
+#define CAP_ALERT_PIN 16
 /* LEDs definition */
 #define LED_E1_PIN 25
 #define LED_E2_PIN 33
@@ -33,7 +33,7 @@ enum mgos_app_init_result mgos_app_init(void) {
 
 	s_cap1106_init();
 
-	// s_touch_tmr = mgos_set_timer(1000, MGOS_TIMER_REPEAT, s_touch_read_tmr, NULL);
+	s_touch_tmr = mgos_set_timer(2000, MGOS_TIMER_REPEAT, s_touch_read_tmr, NULL);
 
 	return MGOS_APP_INIT_SUCCESS;
 }
